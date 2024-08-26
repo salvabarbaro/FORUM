@@ -1,7 +1,10 @@
-## Source code related to the paper entitled: How to tax the European tobacco market?
-setwd("~/Documents/Research/FORUM")
-# First step: load required libraries
-library(rgho)  # who api server 
+## Source code related to the paper entitled: 
+#  A Health Economics Inquiry into Regulatory Constraints on the European Tobacco Market
+#  by Salvatore Barbaro, Nathalie Neu-Yanders, and Nina König
+##################################################################################################
+setwd("path")
+# Load required libraries
+library(rgho)  # WHO api server 
 library(ggplot2)
 library(ggpubr)
 library(ggrepel)
@@ -22,19 +25,19 @@ library(jsonlite)
 library(rstatix)
 library(tidyr)
 ###########################################################################################
-### EU-Countries from eurostat package
+### EU-Countries from eurostat package  # alternative: use the giscoR - package
 data("eu_countries") 
 eu_countries <- eu_countries %>% 
   mutate(name2 = ifelse(name == "Czechia", "Czech Republic", name)) %>% slice(., -28) %>%
   mutate(iso2c = ifelse(code != "EL", code, "GR")) %>% 
   mutate(iso3c = countrycode(iso2c,  origin = 'iso2c', destination = 'iso3c'))
 # eu.map for plotting TCS scores (not yet included)
-eu.map <- map_data('world')  %>% filter(region %in% eu_countries$name2) %>%
-  mutate(iso3c = countrycode(region,  origin = 'country.name', destination = 'iso3c')) %>%
-  mutate(iso2c = countrycode(region,  origin = 'country.name', destination = 'iso2c'))
+#eu.map <- map_data('world')  %>% filter(region %in% eu_countries$name2) %>%
+#  mutate(iso3c = countrycode(region,  origin = 'country.name', destination = 'iso3c')) %>%
+#  mutate(iso2c = countrycode(region,  origin = 'country.name', destination = 'iso2c'))
 reg.withoutEU <- c("AFR", "AMR", "EMR", "SEAR", "WPR")
 ###########################################################################################
-#### FIG 1:
+#### FIG 1: [previousely part of the paper, removed during the reviewing process]
 ETY <- read.csv(url("https://gitlab.rlp.net/sbarbaro/tobacco-taxation-eu/-/raw/main/ETY.csv?ref_type=heads&inline=false"))
 ety.df <- melt(data = ETY, id.vars = c("Country.Name", "Country.Code", "Year"))
 #
@@ -59,11 +62,7 @@ ggsave("etypic.pdf", plot = ety.pic)
 ety.pic
 rm(ety.pic, ETY, ety.df)
 ############################################################################################
-### Figure 2: Caption: "Prevalence estimates in the EU-27 and in other regions."
-## get WHO metadata (adds world regions to countries)
-#gho.meta <- fromJSON(url("https://ghoapi.azureedge.net/api/DIMENSION/COUNTRY/DimensionValues")) %>% 
-#  as.data.frame %>% setNames(., c("URL", "iso3c", "COUNTRY", "v1", "v2", "REGION.CODE", "REGION")) %>%
-#  select(., -c("v1", "v2"))
+### Figure 2 [Figure 1 in the paper]: Caption: "Prevalence estimates in the EU-27 and in other regions."
 ## get WHO data on tob-smoking prevalence: M_Est_smk_curr_std: Estimate of current tobacco smoking prevalence #
 smk.df <- get_gho_data(code = "M_Est_smk_curr_std", filter = NULL) %>% 
   rename(iso3c = COUNTRY)  %>%
@@ -89,8 +88,7 @@ fig2.fun2 <- function(gender){
     scale_y_log10(labels = scales::percent, 
                   limits = c(.01, .50)) +
     geom_line() + geom_point() +
-    #    scale_color_brewer(palette = "Set1") +
-    scale_color_viridis_d(option = "magma", begin = 0.2, end = 0.8) +
+    scale_color_viridis_d(option = "magma", begin = 0.2, end = 0.8) +  # avoids yellow lines
     geom_text(data = tobsmk.df %>% 
                 filter(SEX %in% gender, 
                        year == "2010-01-01",
@@ -112,15 +110,15 @@ fig2 <- ggarrange(plotlist = fig2.plots,
                   legend = "bottom",
                   ncol = 2, nrow = 1)  
 fig2
-ggsave("~/Documents/Research/FORUM/Forum2024/SubmissionJune24/fig2NEW.pdf", 
+ggsave("fig2NEW.pdf", 
        plot = fig2,
        width = 16,
        height = 10)
 
-
 ## European Females
 eu.fem <- smk.df %>% filter(., Region == "EU27", SEX == "SEX_FMLE", YEAR < 2021) #, YEAR %in% 2010:2018
 #
+## The following ggplot is not part of the paper, but can used to illustrate the table in the Appendix B.
 ggplot(data = eu.fem,
        aes(x = YEAR, y = NumericValue, 
            group = iso3c, colour = iso3c)) +
@@ -131,9 +129,9 @@ ggplot(data = eu.fem,
  #      title = "Female smoking prevalence in European countries 2000 - 2018",
 #       subtitle = "Data: World Health Organisation, GHO", 
        col = "Country")
-ggsave("femaleprevalence.pdf")
+#ggsave("femaleprevalence.pdf")
 ##################################################################################
-## As table
+## As table [Table in Appendix B]
 eu.fem.tb <- eu.fem %>% select(., c( "iso3c", "YEAR",  "NumericValue")) %>%
   pivot_wider(names_from = YEAR, values_from = NumericValue, names_sort = T) %>%
   arrange(iso3c) %>%
@@ -145,28 +143,10 @@ eu.fem.tb %>%
       caption = "Female smoking prevalence in European countries 2000 - 2020. Data: World Health Organisation, GHO", 
       digits = 1) %>%
   kable_styling(latex_options = c("hold_position")) %>%
-  save_kable("~/Documents/Research/FORUM/Forum2024/SubmissionJune24/eu_fem_tb.tex")
-
-
-
-
-
-# Use stargazer to export the table
-stargazer(eu.fem.tb, 
-          summary = FALSE, 
-          rownames = FALSE, 
-          type = "latex", 
-          header = FALSE, 
-          title = "Female smoking prevalence in European countries 2000 - 2020. Data: World Health Organisation, GHO", 
-          table.placement = "t", 
-          style = "default", 
-          out = "eu_fem_tb.tex",
-          digits = 1, 
-          booktabs = TRUE)
-
+  save_kable("eu_fem_tb.tex")
 
 #########################################################################################
-# Fig. 3
+# Fig. 3 
 #library(gesisdata)                        # Remote   #
 #library(wdman)                            # Data Load#
 #delete the LICENSE.chromedriver file                #
@@ -181,7 +161,7 @@ library(haven)  # loading the file non-remotedly
 
 ##########################################################################################
 ### Use the Eurobarometer dataset 
-ZA7739 <- read_dta("~/Documents/IPE/TaxationEU/EB2020_93.2.dta")
+ZA7739 <- read_dta("EB2020_93.2.dta")
 #################################################################
 ZA7739$min.w23 <- ZA7739$w23 * 10
 eu28 <- weight2rows(ZA7739, "min.w23") # 
@@ -267,7 +247,7 @@ outc %>% cor_test(cig.smok.quitter.m, ecig.vaper.m) # males
 
 fig3 <- ggarrange(plotlist = list (gg04, gg05), ncol = 2, common.legend = TRUE, legend = "bottom")
 fig3
-ggsave("~/Documents/Research/FORUM/Forum2024/SubmissionJune24/fig3.pdf", 
+ggsave("fig3.pdf", 
        plot = fig3, width = 16, height = 9) #, width = 16, height = 9
 rm(gg04, gg05, fig3)
 ###################################################################################################
