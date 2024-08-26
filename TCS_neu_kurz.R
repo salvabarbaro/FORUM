@@ -15,7 +15,7 @@ library(jsonlite)
 library(rgho)
 library(ggrepel)
 
-setwd("~/Documents/Research/FORUM/DATA/")
+setwd("path")
 EB2006 <- read_dta("ZA4527_v1-0-1EB2006.dta") %>%
   mutate(smoker = ifelse((v192 == 1 | v193 == 1 | v194 == 1), 1, 0) ) %>%
   mutate(quitter = ifelse(v194 == 1, 1, 0)) %>%
@@ -44,7 +44,7 @@ eb.c <- left_join(x = eb2006, y = eb2014, by = "iso2c") %>%
   mutate(reldiff2014 = diff2014 / mn.smok2006)
 #######################################################################################
 ## with EB-Data 2006 - 2020
-EB2020 <- read_dta("~/Documents/IPE/TaxationEU/EB2020_93.2.dta") %>%
+EB2020 <- read_dta("EB2020_93.2.dta") %>%
   mutate(smoker = ifelse(qc1 == 1, 1, 0)) %>%
   mutate(isocntry = ifelse(isocntry %in% c("DE-E", "DE-W"), "DE", isocntry))
 eb2020 <- as_survey_design(EB2020, weights = w23) %>% group_by(isocntry) %>% 
@@ -103,7 +103,7 @@ g.eb0720 <- ggplot(data = plot.data,
 
 all.eb.pics <- ggarrange(g.eb0714, g.eb0720, ncol = 2)
 all.eb.pics
-ggsave("~/Documents/Research/FORUM/TCSEffectiveness.pdf", plot = all.eb.pics)
+ggsave("TCSEffectiveness.pdf", plot = all.eb.pics)
 
 
 
