@@ -251,7 +251,7 @@ ggsave("fig3.pdf",
        plot = fig3, width = 16, height = 9) #, width = 16, height = 9
 rm(gg04, gg05, fig3)
 ###################################################################################################
-## Fig 4
+## Fig 4 [Factors for entry into e-cigarettes and heated-tobacco use]
 ## reasons for starting vaping / using heated tob (fig 4: boxplots)
 reason.ecig.df <- melt(data = eu28, 
                        id.vars = c("isocntry", "d10"),
@@ -261,16 +261,39 @@ reason.ecig.df <- melt(data = eu28,
 reas.list <- c("qc11a_1", "qc11a_2", "qc11a_3", "qc11a_4", "qc11a_5", "qc11a_6", "qc11a_7", "qc11a_8")
 #reas.list <- c(eu28$qc11a_1 , eu28$qc11a_2)
 #
-reason.fun <- function(rv){
-  rvar <- rv[is.na(rv) == FALSE] 
+reason.ecig.df <- melt(data = eu28, 
+                       id.vars = c("isocntry", "d10"),
+                       measure.vars = c("qc11a_1", "qc11a_2", "qc11a_3", "qc11a_4", "qc11a_5", "qc11a_6", "qc11a_7", "qc11a_8"),
+                       na.rm = TRUE)
+# remove NA, then count #1 / #(0, 1)
+reas.list <- c("qc11a_1", "qc11a_2", "qc11a_3", "qc11a_4", "qc11a_5", "qc11a_6", "qc11a_7", "qc11a_8")
+#reas.list <- c(eu28$qc11a_1 , eu28$qc11a_2)
+#
+reason.fun <- function(rv, conf.level = 0.95, method = "wilson") {
+  rvar <- rv[!is.na(rv)]
   r.share <- sum(rvar) / length(rvar)
-  return(r.share)
-}  
-#
-reas.res <- sapply(eu28[,361:368], reason.fun)
-reas.res
-#
-# country-specific answers
+  conf.int <- binom.confint(sum(rvar), length(rvar), conf.level = conf.level, methods = method)
+  lower_bound <- conf.int$lower
+  upper_bound <- conf.int$upper
+  return(list(share = r.share, 
+              lower = lower_bound, 
+              upper = upper_bound))
+}
+
+eu28.f <- eu28 %>% filter(., d10 == 2) # only females 
+eu28.m <- eu28 %>% filter(., d10 == 1) # only males 
+reas.res <- sapply(eu28[,361:368], reason.fun) %>% as.data.frame(.) # both sexes (btsx)
+reas.res.f <- sapply(eu28.f[,361:368], reason.fun) %>% as.data.frame(.) # females(fmle)
+reas.res.m <- sapply(eu28.m[,361:368], reason.fun) %>% as.data.frame(.) # males (mle)
+
+reas <- bind_rows(reas.res, reas.res.f, reas.res.m) %>%
+  setNames(c("Reduce.Tob", "Cool.Attr.", "Places", "Price",
+             "Friends", "Flavour", "Less.Harmful", "Others"))
+rownames(reas) <- c("Est.btsx", "Lower.btsx", "Upper.btsx",
+                    "Est.fmle", "Lower.fmle", "Upper.fmle",
+                    "Est.mle", "Lower.mle", "Upper.mle")
+
+# country-specific answers (not part of the paper)
 reason.fun2 <- function(cou){
   reas.res.at <- sapply(subset(eu28, isocntry %in% c(cou))[,361:368], reason.fun)
 }
